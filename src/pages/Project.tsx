@@ -13,6 +13,7 @@ import {
   Sparkles,
   Image as ImageIcon,
   Trash2,
+  PenTool,
 } from "lucide-react";
 
 interface Project {
@@ -232,25 +233,37 @@ export default function Project() {
               <p className="text-muted-foreground mt-1">{project.description}</p>
             )}
           </div>
-          {project.status !== "completed" && (
-            <Button
-              variant="gradient"
-              onClick={handleGenerate}
-              disabled={generating || images.length === 0}
-            >
-              {generating ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Generate Style Guide
-                </>
-              )}
-            </Button>
-          )}
+          <div className="flex gap-3">
+            {project.status === "completed" && project.style_guide && (
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/project/${id}/wireframe`)}
+                className="gap-2"
+              >
+                <PenTool className="w-4 h-4" />
+                Open Wireframe Editor
+              </Button>
+            )}
+            {project.status !== "completed" && (
+              <Button
+                variant="gradient"
+                onClick={handleGenerate}
+                disabled={generating || images.length === 0}
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Generate Style Guide
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
 
         {project.status === "completed" && project.style_guide ? (
