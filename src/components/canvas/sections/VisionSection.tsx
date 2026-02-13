@@ -95,7 +95,7 @@ const VisionSection = ({ generatedUI, isLoading }: VisionSectionProps) => {
               </div>
 
               {generatedUI?.imageUrl &&
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 bg-muted">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomOut}>
                     <ZoomOut className="w-4 h-4" />
                   </Button>
@@ -127,7 +127,7 @@ const VisionSection = ({ generatedUI, isLoading }: VisionSectionProps) => {
             {/* Preview Area */}
             <div
               ref={containerRef}
-              className="h-[500px] overflow-hidden relative bg-[repeating-linear-gradient(45deg,hsl(var(--secondary))_0,hsl(var(--secondary))_10px,transparent_10px,transparent_20px)]"
+              className="h-[500px] overflow-hidden relative bg-[repeating-linear-gradient(45deg,hsl(var(--secondary))_0,hsl(var(--secondary))_10px,transparent_10px,transparent_20px)] bg-muted"
               style={{ cursor: generatedUI?.imageUrl ? 'grab' : 'default' }}
               onMouseDown={generatedUI?.imageUrl ? handleMouseDown : undefined}
               onMouseMove={generatedUI?.imageUrl ? handleMouseMove : undefined}
