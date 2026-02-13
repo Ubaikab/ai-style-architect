@@ -11,6 +11,30 @@ import VisionSection from './sections/VisionSection';
 import { TypographySystem, ColorPalette, GeneratedUI } from './types';
 import { CanvasElement } from './types/elements';
 
+const STORAGE_KEYS = {
+  typography: 'design-studio-typography',
+  colorPalette: 'design-studio-color-palette',
+  moodboardBase64: 'design-studio-moodboard',
+  generatedUI: 'design-studio-generated-ui',
+};
+
+const loadJson = <T,>(key: string): T | null => {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : null;
+  } catch { return null; }
+};
+
+const saveJson = (key: string, value: unknown) => {
+  try {
+    if (value === null || value === undefined) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+  } catch { /* ignore quota errors */ }
+};
+
 const DesignStudio = () => {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
@@ -22,10 +46,10 @@ const DesignStudio = () => {
     }
   }, [user, loading, navigate]);
 
-  // Design System State
-  const [typography, setTypography] = useState<TypographySystem | null>(null);
-  const [colorPalette, setColorPalette] = useState<ColorPalette | null>(null);
-  const [moodboardBase64, setMoodboardBase64] = useState<string | null>(null);
+  // Design System State — restore from localStorage
+  const [typography, setTypography] = useState<TypographySystem | null>(() => loadJson(STORAGE_KEYS.typography));
+  const [colorPalette, setColorPalette] = useState<ColorPalette | null>(() => loadJson(STORAGE_KEYS.colorPalette));
+  const [moodboardBase64, setMoodboardBase64] = useState<string | null>(() => localStorage.getItem(STORAGE_KEYS.moodboardBase64));
 
   // Canvas State
   const [canvasData, setCanvasData] = useState<{
@@ -33,9 +57,20 @@ const DesignStudio = () => {
     rootIds: string[];
   } | null>(null);
 
-  // Generated UI State
-  const [generatedUI, setGeneratedUI] = useState<GeneratedUI | null>(null);
+  // Generated UI State — restore from localStorage
+  const [generatedUI, setGeneratedUI] = useState<GeneratedUI | null>(() => loadJson(STORAGE_KEYS.generatedUI));
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Persist state changes to localStorage
+  useEffect(() => { saveJson(STORAGE_KEYS.typography, typography); }, [typography]);
+  useEffect(() => { saveJson(STORAGE_KEYS.colorPalette, colorPalette); }, [colorPalette]);
+  useEffect(() => {
+    try {
+      if (moodboardBase64) localStorage.setItem(STORAGE_KEYS.moodboardBase64, moodboardBase64);
+      else localStorage.removeItem(STORAGE_KEYS.moodboardBase64);
+    } catch { /* ignore */ }
+  }, [moodboardBase64]);
+  useEffect(() => { saveJson(STORAGE_KEYS.generatedUI, generatedUI); }, [generatedUI]);
 
   const handleCanvasChange = useCallback((json: { elements: Record<string, CanvasElement>; rootIds: string[] }) => {
     setCanvasData(json);
