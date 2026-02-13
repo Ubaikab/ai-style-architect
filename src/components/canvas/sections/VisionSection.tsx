@@ -161,9 +161,9 @@ const VisionSection = ({ generatedUI, isLoading }: VisionSectionProps) => {
 
                 </div> :
 
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center bg-muted">
                   <div className="text-center p-6">
-                    <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-muted">
                       <Maximize2 className="w-8 h-8 text-muted-foreground" />
                     </div>
                     <p className="text-foreground font-medium mb-1">Your Design Will Appear Here</p>

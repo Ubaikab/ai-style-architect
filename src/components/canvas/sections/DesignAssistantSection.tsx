@@ -174,7 +174,7 @@ Apply the following design system:
               <div className="p-4 space-y-4">
                 {messages.length === 0 ?
                 <div className="text-center py-8">
-                    <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-secondary flex items-center justify-center">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-xl flex items-center justify-center border-primary bg-muted">
                       <Sparkles className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <p className="text-muted-foreground text-sm mb-4">
@@ -185,7 +185,7 @@ Apply the following design system:
                     <button
                       key={i}
                       onClick={() => setInput(prompt)}
-                      className="px-3 py-1.5 text-xs rounded-full bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-colors">
+                      className="px-3 py-1.5 text-xs rounded-full text-muted-foreground hover:text-foreground transition-colors bg-muted">
 
                           {prompt}
                         </button>
