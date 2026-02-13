@@ -159,6 +159,45 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_designs: {
+        Row: {
+          color_palette: Json | null
+          created_at: string
+          generated_ui: Json | null
+          id: string
+          name: string
+          sketch_data: Json | null
+          thumbnail_url: string | null
+          typography_system: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color_palette?: Json | null
+          created_at?: string
+          generated_ui?: Json | null
+          id?: string
+          name?: string
+          sketch_data?: Json | null
+          thumbnail_url?: string | null
+          typography_system?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color_palette?: Json | null
+          created_at?: string
+          generated_ui?: Json | null
+          id?: string
+          name?: string
+          sketch_data?: Json | null
+          thumbnail_url?: string | null
+          typography_system?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
