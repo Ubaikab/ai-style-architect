@@ -19,8 +19,8 @@ const VisionSection = ({ generatedUI, isLoading }: VisionSectionProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const handleZoomIn = () => setScale(prev => Math.min(prev + 0.25, 3));
-  const handleZoomOut = () => setScale(prev => Math.max(prev - 0.25, 0.25));
+  const handleZoomIn = () => setScale((prev) => Math.min(prev + 0.25, 3));
+  const handleZoomOut = () => setScale((prev) => Math.max(prev - 0.25, 0.25));
   const handleReset = () => {
     setScale(1);
     setPosition({ x: 0, y: 0 });
@@ -46,14 +46,14 @@ const VisionSection = ({ generatedUI, isLoading }: VisionSectionProps) => {
 
   const handleDownload = () => {
     if (!generatedUI?.imageUrl) return;
-    
+
     const link = document.createElement('a');
     link.href = generatedUI.imageUrl;
     link.download = `generated-ui-${Date.now()}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     toast({
       title: 'Downloaded!',
       description: 'UI image saved to your device'
@@ -67,8 +67,8 @@ const VisionSection = ({ generatedUI, isLoading }: VisionSectionProps) => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-8"
-        >
+          className="text-center mb-8">
+
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-card mb-4">
             <span className="text-xs font-medium">Step 4</span>
           </div>
@@ -84,8 +84,8 @@ const VisionSection = ({ generatedUI, isLoading }: VisionSectionProps) => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="max-w-5xl mx-auto"
-        >
+          className="max-w-5xl mx-auto">
+
           <div className="rounded-2xl glass-card overflow-hidden shadow-2xl">
             {/* Toolbar */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-card/50">
@@ -94,19 +94,19 @@ const VisionSection = ({ generatedUI, isLoading }: VisionSectionProps) => {
                 <span className="text-sm font-medium">UI Preview</span>
               </div>
 
-              {generatedUI?.imageUrl && (
-                <div className="flex items-center gap-2">
+              {generatedUI?.imageUrl &&
+              <div className="flex items-center gap-2">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomOut}>
                     <ZoomOut className="w-4 h-4" />
                   </Button>
                   <div className="w-24">
                     <Slider
-                      value={[scale * 100]}
-                      min={25}
-                      max={300}
-                      step={25}
-                      onValueChange={([v]) => setScale(v / 100)}
-                    />
+                    value={[scale * 100]}
+                    min={25}
+                    max={300}
+                    step={25}
+                    onValueChange={([v]) => setScale(v / 100)} />
+
                   </div>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomIn}>
                     <ZoomIn className="w-4 h-4" />
@@ -121,7 +121,7 @@ const VisionSection = ({ generatedUI, isLoading }: VisionSectionProps) => {
                     Download
                   </Button>
                 </div>
-              )}
+              }
             </div>
 
             {/* Preview Area */}
@@ -132,10 +132,10 @@ const VisionSection = ({ generatedUI, isLoading }: VisionSectionProps) => {
               onMouseDown={generatedUI?.imageUrl ? handleMouseDown : undefined}
               onMouseMove={generatedUI?.imageUrl ? handleMouseMove : undefined}
               onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
-            >
-              {isLoading ? (
-                <div className="absolute inset-0 flex items-center justify-center">
+              onMouseLeave={handleMouseUp}>
+
+              {isLoading ?
+              <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <div className="relative w-20 h-20 mx-auto mb-4">
                       <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
@@ -144,26 +144,26 @@ const VisionSection = ({ generatedUI, isLoading }: VisionSectionProps) => {
                     <p className="text-foreground font-medium">Generating your UI...</p>
                     <p className="text-sm text-muted-foreground mt-1">This may take a moment</p>
                   </div>
-                </div>
-              ) : generatedUI?.imageUrl ? (
-                <div 
-                  className="absolute inset-0 flex items-center justify-center"
-                  style={{
-                    transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                    transformOrigin: 'center center'
-                  }}
-                >
+                </div> :
+              generatedUI?.imageUrl ?
+              <div
+                className="absolute inset-0 flex items-center justify-center"
+                style={{
+                  transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                  transformOrigin: 'center center'
+                }}>
+
                   <img
-                    src={generatedUI.imageUrl}
-                    alt="Generated UI"
-                    className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-                    draggable={false}
-                  />
-                </div>
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
+                  src={generatedUI.imageUrl}
+                  alt="Generated UI"
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                  draggable={false} />
+
+                </div> :
+
+              <div className="absolute inset-0 flex items-center justify-center bg-muted">
                   <div className="text-center p-6">
-                    <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-muted">
                       <Maximize2 className="w-8 h-8 text-muted-foreground" />
                     </div>
                     <p className="text-foreground font-medium mb-1">Your Design Will Appear Here</p>
@@ -172,29 +172,29 @@ const VisionSection = ({ generatedUI, isLoading }: VisionSectionProps) => {
                     </p>
                   </div>
                 </div>
-              )}
+              }
             </div>
 
             {/* Design Notes */}
-            {generatedUI?.designNotes && generatedUI.designNotes.length > 0 && (
-              <div className="px-4 py-3 border-t border-border/50 bg-card/30">
+            {generatedUI?.designNotes && generatedUI.designNotes.length > 0 &&
+            <div className="px-4 py-3 border-t border-border/50 bg-card/30">
                 <div className="flex flex-wrap gap-2">
-                  {generatedUI.designNotes.map((note, i) => (
-                    <span
-                      key={i}
-                      className="px-2 py-1 text-xs rounded-full bg-secondary text-muted-foreground"
-                    >
+                  {generatedUI.designNotes.map((note, i) =>
+                <span
+                  key={i}
+                  className="px-2 py-1 text-xs rounded-full bg-secondary text-muted-foreground">
+
                       {note}
                     </span>
-                  ))}
+                )}
                 </div>
               </div>
-            )}
+            }
           </div>
         </motion.div>
       </div>
-    </section>
-  );
+    </section>);
+
 };
 
 export default VisionSection;

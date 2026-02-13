@@ -10,7 +10,7 @@ import { CanvasElement } from '../types/elements';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface DesignAssistantSectionProps {
-  canvasData: { elements: Record<string, CanvasElement>; rootIds: string[] } | null;
+  canvasData: {elements: Record<string, CanvasElement>;rootIds: string[];} | null;
   typography: TypographySystem | null;
   colorPalette: ColorPalette | null;
   moodboardBase64: string | null;
@@ -39,7 +39,7 @@ const DesignAssistantSection = ({
       toast({
         title: 'No layout created',
         description: 'Please create a layout in the canvas section first',
-        variant: 'destructive',
+        variant: 'destructive'
       });
       return;
     }
@@ -48,9 +48,9 @@ const DesignAssistantSection = ({
       id: `msg-${Date.now()}`,
       role: 'user',
       content: input.trim(),
-      timestamp: new Date(),
+      timestamp: new Date()
     };
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsGenerating(true);
 
@@ -58,7 +58,7 @@ const DesignAssistantSection = ({
       // Convert canvas JSON to a base64 representation for the AI
       // In a real implementation, you'd render the canvas to an image
       const layoutDescription = JSON.stringify(canvasData, null, 2);
-      
+
       // Create a combined prompt that includes the layout structure
       const enhancedPrompt = `
 Layout Structure (JSON):
@@ -78,40 +78,40 @@ Apply the following design system:
         {
           typography: typography || undefined,
           colorPalette: colorPalette || undefined,
-          conversationHistory: messages,
+          conversationHistory: messages
         }
       );
 
       if (result.success && result.data) {
         onUIGenerated(result.data);
-        
+
         const assistantMessage: DesignChatMessage = {
           id: `msg-${Date.now()}-assistant`,
           role: 'assistant',
           content: result.data.description || 'I\'ve transformed your wireframe into a polished UI design! Check the preview below.',
           imageUrl: result.data.imageUrl,
-          timestamp: new Date(),
+          timestamp: new Date()
         };
-        setMessages(prev => [...prev, assistantMessage]);
-        
+        setMessages((prev) => [...prev, assistantMessage]);
+
         toast({
           title: 'UI Generated!',
-          description: 'Your layout has been transformed',
+          description: 'Your layout has been transformed'
         });
       } else {
         const errorMessage: DesignChatMessage = {
           id: `msg-${Date.now()}-error`,
           role: 'assistant',
           content: `I couldn't generate the UI: ${result.error || 'Unknown error'}. Please try a different approach.`,
-          timestamp: new Date(),
+          timestamp: new Date()
         };
-        setMessages(prev => [...prev, errorMessage]);
+        setMessages((prev) => [...prev, errorMessage]);
       }
     } catch (error) {
       toast({
         title: 'Error',
         description: 'Failed to connect to AI service',
-        variant: 'destructive',
+        variant: 'destructive'
       });
     } finally {
       setIsGenerating(false);
@@ -119,11 +119,11 @@ Apply the following design system:
   }, [input, hasLayout, canvasData, typography, colorPalette, moodboardBase64, messages, toast, onUIGenerated]);
 
   const suggestedPrompts = [
-    'Make it modern and minimal with subtle shadows',
-    'Add a glassmorphism effect with blur backgrounds',
-    'Use a dark theme with vibrant accent colors',
-    'Make it feel premium with elegant typography',
-  ];
+  'Make it modern and minimal with subtle shadows',
+  'Add a glassmorphism effect with blur backgrounds',
+  'Use a dark theme with vibrant accent colors',
+  'Make it feel premium with elegant typography'];
+
 
   return (
     <section className="py-12 border-b border-border/50">
@@ -132,8 +132,8 @@ Apply the following design system:
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-8"
-        >
+          className="text-center mb-8">
+
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-card mb-4">
             <span className="text-xs font-medium">Step 3</span>
           </div>
@@ -149,8 +149,8 @@ Apply the following design system:
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="max-w-3xl mx-auto"
-        >
+          className="max-w-3xl mx-auto">
+
           <div className="rounded-2xl glass-card overflow-hidden">
             {/* Status Bar */}
             <div className="flex items-center gap-4 px-4 py-3 border-b border-border/50 bg-card/50">
@@ -172,59 +172,59 @@ Apply the following design system:
             {/* Messages */}
             <ScrollArea className="h-64">
               <div className="p-4 space-y-4">
-                {messages.length === 0 ? (
-                  <div className="text-center py-8">
-                    <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-secondary flex items-center justify-center">
+                {messages.length === 0 ?
+                <div className="text-center py-8">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-xl flex items-center justify-center bg-muted">
                       <Sparkles className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <p className="text-muted-foreground text-sm mb-4">
                       Describe how you want your UI to look
                     </p>
                     <div className="flex flex-wrap justify-center gap-2">
-                      {suggestedPrompts.map((prompt, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setInput(prompt)}
-                          className="px-3 py-1.5 text-xs rounded-full bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-colors"
-                        >
+                      {suggestedPrompts.map((prompt, i) =>
+                    <button
+                      key={i}
+                      onClick={() => setInput(prompt)}
+                      className="px-3 py-1.5 text-xs rounded-full text-muted-foreground hover:text-foreground transition-colors bg-muted">
+
                           {prompt}
                         </button>
-                      ))}
+                    )}
                     </div>
-                  </div>
-                ) : (
-                  messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
+                  </div> :
+
+                messages.map((message) =>
+                <div
+                  key={message.id}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+
                       <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                          message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-secondary'
-                        }`}
-                      >
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                    message.role === 'user' ?
+                    'bg-primary text-primary-foreground' :
+                    'bg-secondary'}`
+                    }>
+
                         <p className="text-sm">{message.content}</p>
-                        {message.imageUrl && (
-                          <img
-                            src={message.imageUrl}
-                            alt="Generated UI"
-                            className="mt-2 rounded-lg max-w-full"
-                          />
-                        )}
+                        {message.imageUrl &&
+                    <img
+                      src={message.imageUrl}
+                      alt="Generated UI"
+                      className="mt-2 rounded-lg max-w-full" />
+
+                    }
                       </div>
                     </div>
-                  ))
-                )}
-                {isGenerating && (
-                  <div className="flex justify-start">
+                )
+                }
+                {isGenerating &&
+                <div className="flex justify-start">
                     <div className="bg-secondary rounded-2xl px-4 py-3 flex items-center gap-2">
                       <Loader2 className="w-4 h-4 animate-spin" />
                       <span className="text-sm">Generating your UI...</span>
                     </div>
                   </div>
-                )}
+                }
               </div>
             </ScrollArea>
 
@@ -242,26 +242,26 @@ Apply the following design system:
                       e.preventDefault();
                       handleSendMessage();
                     }
-                  }}
-                />
+                  }} />
+
                 <Button
                   onClick={handleSendMessage}
                   disabled={!input.trim() || !hasLayout || isGenerating}
-                  className="self-end"
-                >
-                  {isGenerating ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-4 h-4" />
-                  )}
+                  className="self-end">
+
+                  {isGenerating ?
+                  <Loader2 className="w-4 h-4 animate-spin" /> :
+
+                  <Sparkles className="w-4 h-4" />
+                  }
                 </Button>
               </div>
             </div>
           </div>
         </motion.div>
       </div>
-    </section>
-  );
+    </section>);
+
 };
 
 export default DesignAssistantSection;

@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { 
+import {
   CanvasElement,
   TextElement,
   ButtonElement,
@@ -8,19 +8,19 @@ import {
   RectangleElement,
   FrameElement,
   ContainerElement,
-  AutoLayoutElement
-} from '../types/elements';
+  AutoLayoutElement } from
+'../types/elements';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  SelectValue } from
+"@/components/ui/select";
 import { Lock, Unlock, Eye, EyeOff, ArrowUpToLine, ArrowDownToLine, ChevronUp, ChevronDown, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, GripHorizontal, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -41,15 +41,15 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
     return (
       <div className="h-full flex items-center justify-center p-4 text-center">
         <div>
-          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-secondary flex items-center justify-center">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-xl flex items-center justify-center bg-muted">
             <span className="text-2xl">🎨</span>
           </div>
           <p className="text-sm text-muted-foreground">
             Select an element to edit its properties
           </p>
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
   if (selectedElements.length > 1) {
@@ -112,8 +112,8 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
             </TooltipTrigger><TooltipContent><p>Distribute Vertically</p></TooltipContent></Tooltip>
           </div>
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
   const element = selectedElements[0];
@@ -124,16 +124,16 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
     } as Partial<CanvasElement>);
   };
 
-  const renderCommonProperties = () => (
-    <>
+  const renderCommonProperties = () =>
+  <>
       {/* Name */}
       <div className="space-y-2">
         <Label className="text-xs">Name</Label>
         <Input
-          value={element.name}
-          onChange={(e) => onUpdateElement(element.id, { name: e.target.value })}
-          className="h-8 text-sm"
-        />
+        value={element.name}
+        onChange={(e) => onUpdateElement(element.id, { name: e.target.value })}
+        className="h-8 text-sm" />
+
       </div>
 
       {/* Position & Size */}
@@ -143,20 +143,20 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
           <div>
             <span className="text-xs text-muted-foreground">X</span>
             <Input
-              type="number"
-              value={Math.round(element.bounds.x)}
-              onChange={(e) => updateBounds('x', parseFloat(e.target.value) || 0)}
-              className="h-8 text-sm"
-            />
+            type="number"
+            value={Math.round(element.bounds.x)}
+            onChange={(e) => updateBounds('x', parseFloat(e.target.value) || 0)}
+            className="h-8 text-sm" />
+
           </div>
           <div>
             <span className="text-xs text-muted-foreground">Y</span>
             <Input
-              type="number"
-              value={Math.round(element.bounds.y)}
-              onChange={(e) => updateBounds('y', parseFloat(e.target.value) || 0)}
-              className="h-8 text-sm"
-            />
+            type="number"
+            value={Math.round(element.bounds.y)}
+            onChange={(e) => updateBounds('y', parseFloat(e.target.value) || 0)}
+            className="h-8 text-sm" />
+
           </div>
         </div>
       </div>
@@ -167,20 +167,20 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
           <div>
             <span className="text-xs text-muted-foreground">W</span>
             <Input
-              type="number"
-              value={Math.round(element.bounds.width)}
-              onChange={(e) => updateBounds('width', parseFloat(e.target.value) || 20)}
-              className="h-8 text-sm"
-            />
+            type="number"
+            value={Math.round(element.bounds.width)}
+            onChange={(e) => updateBounds('width', parseFloat(e.target.value) || 20)}
+            className="h-8 text-sm" />
+
           </div>
           <div>
             <span className="text-xs text-muted-foreground">H</span>
             <Input
-              type="number"
-              value={Math.round(element.bounds.height)}
-              onChange={(e) => updateBounds('height', parseFloat(e.target.value) || 20)}
-              className="h-8 text-sm"
-            />
+            type="number"
+            value={Math.round(element.bounds.height)}
+            onChange={(e) => updateBounds('height', parseFloat(e.target.value) || 20)}
+            className="h-8 text-sm" />
+
           </div>
         </div>
       </div>
@@ -192,12 +192,12 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
           <span className="text-xs text-muted-foreground">{Math.round(element.opacity * 100)}%</span>
         </div>
         <Slider
-          value={[element.opacity * 100]}
-          min={0}
-          max={100}
-          step={1}
-          onValueChange={([v]) => onUpdateElement(element.id, { opacity: v / 100 })}
-        />
+        value={[element.opacity * 100]}
+        min={0}
+        max={100}
+        step={1}
+        onValueChange={([v]) => onUpdateElement(element.id, { opacity: v / 100 })} />
+
       </div>
 
       {/* Rotation */}
@@ -207,31 +207,31 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
           <span className="text-xs text-muted-foreground">{element.rotation}°</span>
         </div>
         <Slider
-          value={[element.rotation]}
-          min={0}
-          max={360}
-          step={1}
-          onValueChange={([v]) => onUpdateElement(element.id, { rotation: v })}
-        />
+        value={[element.rotation]}
+        min={0}
+        max={360}
+        step={1}
+        onValueChange={([v]) => onUpdateElement(element.id, { rotation: v })} />
+
       </div>
 
       {/* Lock & Visibility */}
       <div className="flex items-center gap-2">
         <Button
-          variant={element.locked ? 'secondary' : 'ghost'}
-          size="sm"
-          className="flex-1"
-          onClick={() => onUpdateElement(element.id, { locked: !element.locked })}
-        >
+        variant={element.locked ? 'secondary' : 'ghost'}
+        size="sm"
+        className="flex-1"
+        onClick={() => onUpdateElement(element.id, { locked: !element.locked })}>
+
           {element.locked ? <Lock className="w-4 h-4 mr-1" /> : <Unlock className="w-4 h-4 mr-1" />}
           {element.locked ? 'Locked' : 'Unlocked'}
         </Button>
         <Button
-          variant={element.visible ? 'ghost' : 'secondary'}
-          size="sm"
-          className="flex-1"
-          onClick={() => onUpdateElement(element.id, { visible: !element.visible })}
-        >
+        variant={element.visible ? 'ghost' : 'secondary'}
+        size="sm"
+        className="flex-1"
+        onClick={() => onUpdateElement(element.id, { visible: !element.visible })}>
+
           {element.visible ? <Eye className="w-4 h-4 mr-1" /> : <EyeOff className="w-4 h-4 mr-1" />}
           {element.visible ? 'Visible' : 'Hidden'}
         </Button>
@@ -276,8 +276,8 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
         </div>
         <span className="text-xs text-muted-foreground">Z-Index: {element.zIndex}</span>
       </div>
-    </>
-  );
+    </>;
+
 
   const renderTextProperties = () => {
     const textEl = element as TextElement;
@@ -289,28 +289,28 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
           <Input
             value={textEl.content}
             onChange={(e) => onUpdateElement(element.id, { content: e.target.value } as Partial<TextElement>)}
-            className="h-8 text-sm"
-          />
+            className="h-8 text-sm" />
+
         </div>
         <div className="space-y-2">
           <Label className="text-xs">Font Size</Label>
           <Input
             type="number"
             value={textEl.textStyle.fontSize}
-            onChange={(e) => onUpdateElement(element.id, { 
+            onChange={(e) => onUpdateElement(element.id, {
               textStyle: { ...textEl.textStyle, fontSize: parseFloat(e.target.value) || 16 }
             } as Partial<TextElement>)}
-            className="h-8 text-sm"
-          />
+            className="h-8 text-sm" />
+
         </div>
         <div className="space-y-2">
           <Label className="text-xs">Font Weight</Label>
-          <Select 
+          <Select
             value={String(textEl.textStyle.fontWeight)}
             onValueChange={(v) => onUpdateElement(element.id, {
               textStyle: { ...textEl.textStyle, fontWeight: parseInt(v) }
-            } as Partial<TextElement>)}
-          >
+            } as Partial<TextElement>)}>
+
             <SelectTrigger className="h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
@@ -332,19 +332,19 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
               onChange={(e) => onUpdateElement(element.id, {
                 textStyle: { ...textEl.textStyle, color: e.target.value }
               } as Partial<TextElement>)}
-              className="w-8 h-8 rounded cursor-pointer"
-            />
+              className="w-8 h-8 rounded cursor-pointer" />
+
             <Input
               value={textEl.textStyle.color}
               onChange={(e) => onUpdateElement(element.id, {
                 textStyle: { ...textEl.textStyle, color: e.target.value }
               } as Partial<TextElement>)}
-              className="h-8 text-sm flex-1"
-            />
+              className="h-8 text-sm flex-1" />
+
           </div>
         </div>
-      </>
-    );
+      </>);
+
   };
 
   const renderButtonProperties = () => {
@@ -357,8 +357,8 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
           <Input
             value={btnEl.label}
             onChange={(e) => onUpdateElement(element.id, { label: e.target.value } as Partial<ButtonElement>)}
-            className="h-8 text-sm"
-          />
+            className="h-8 text-sm" />
+
         </div>
         <div className="space-y-2">
           <Label className="text-xs">Font Size</Label>
@@ -368,17 +368,17 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
             onChange={(e) => onUpdateElement(element.id, {
               textStyle: { ...btnEl.textStyle, fontSize: parseFloat(e.target.value) || 14 }
             } as Partial<ButtonElement>)}
-            className="h-8 text-sm"
-          />
+            className="h-8 text-sm" />
+
         </div>
         <div className="space-y-2">
           <Label className="text-xs">Font Weight</Label>
-          <Select 
+          <Select
             value={String(btnEl.textStyle.fontWeight)}
             onValueChange={(v) => onUpdateElement(element.id, {
               textStyle: { ...btnEl.textStyle, fontWeight: parseInt(v) }
-            } as Partial<ButtonElement>)}
-          >
+            } as Partial<ButtonElement>)}>
+
             <SelectTrigger className="h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
@@ -400,23 +400,23 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
               onChange={(e) => onUpdateElement(element.id, {
                 textStyle: { ...btnEl.textStyle, color: e.target.value }
               } as Partial<ButtonElement>)}
-              className="w-8 h-8 rounded cursor-pointer"
-            />
+              className="w-8 h-8 rounded cursor-pointer" />
+
             <Input
               value={btnEl.textStyle.color}
               onChange={(e) => onUpdateElement(element.id, {
                 textStyle: { ...btnEl.textStyle, color: e.target.value }
               } as Partial<ButtonElement>)}
-              className="h-8 text-sm flex-1"
-            />
+              className="h-8 text-sm flex-1" />
+
           </div>
         </div>
         <div className="space-y-2">
           <Label className="text-xs">Variant</Label>
-          <Select 
+          <Select
             value={btnEl.variant}
-            onValueChange={(v) => onUpdateElement(element.id, { variant: v } as Partial<ButtonElement>)}
-          >
+            onValueChange={(v) => onUpdateElement(element.id, { variant: v } as Partial<ButtonElement>)}>
+
             <SelectTrigger className="h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
@@ -437,25 +437,25 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
               onChange={(e) => onUpdateElement(element.id, {
                 fill: { type: 'solid', color: e.target.value, opacity: 1 }
               } as Partial<ButtonElement>)}
-              className="w-8 h-8 rounded cursor-pointer"
-            />
+              className="w-8 h-8 rounded cursor-pointer" />
+
             <Input
               value={btnEl.fill?.color || '#a855f7'}
               onChange={(e) => onUpdateElement(element.id, {
                 fill: { type: 'solid', color: e.target.value, opacity: 1 }
               } as Partial<ButtonElement>)}
-              className="h-8 text-sm flex-1"
-            />
+              className="h-8 text-sm flex-1" />
+
           </div>
         </div>
-      </>
-    );
+      </>);
+
   };
 
   const renderFillProperties = () => {
     const fillEl = element as RectangleElement | FrameElement | ContainerElement;
     if (!('fill' in element)) return null;
-    
+
     return (
       <>
         <Separator />
@@ -468,19 +468,19 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
               onChange={(e) => onUpdateElement(element.id, {
                 fill: { type: 'solid', color: e.target.value, opacity: 1 }
               } as Partial<RectangleElement>)}
-              className="w-8 h-8 rounded cursor-pointer"
-            />
+              className="w-8 h-8 rounded cursor-pointer" />
+
             <Input
               value={fillEl.fill?.color || '#333333'}
               onChange={(e) => onUpdateElement(element.id, {
                 fill: { type: 'solid', color: e.target.value, opacity: 1 }
               } as Partial<RectangleElement>)}
-              className="h-8 text-sm flex-1"
-            />
+              className="h-8 text-sm flex-1" />
+
           </div>
         </div>
-      </>
-    );
+      </>);
+
   };
 
   const renderAutoLayoutProperties = () => {
@@ -490,12 +490,12 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
         <Separator />
         <div className="space-y-2">
           <Label className="text-xs">Direction</Label>
-          <Select 
+          <Select
             value={layoutEl.layout.direction}
             onValueChange={(v) => onUpdateElement(element.id, {
               layout: { ...layoutEl.layout, direction: v as 'horizontal' | 'vertical' }
-            } as Partial<AutoLayoutElement>)}
-          >
+            } as Partial<AutoLayoutElement>)}>
+
             <SelectTrigger className="h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
@@ -517,17 +517,17 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
             step={4}
             onValueChange={([v]) => onUpdateElement(element.id, {
               layout: { ...layoutEl.layout, gap: v }
-            } as Partial<AutoLayoutElement>)}
-          />
+            } as Partial<AutoLayoutElement>)} />
+
         </div>
         <div className="space-y-2">
           <Label className="text-xs">Align Items</Label>
-          <Select 
+          <Select
             value={layoutEl.layout.alignItems}
             onValueChange={(v) => onUpdateElement(element.id, {
               layout: { ...layoutEl.layout, alignItems: v as 'start' | 'center' | 'end' | 'stretch' }
-            } as Partial<AutoLayoutElement>)}
-          >
+            } as Partial<AutoLayoutElement>)}>
+
             <SelectTrigger className="h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
@@ -539,16 +539,16 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
             </SelectContent>
           </Select>
         </div>
-      </>
-    );
+      </>);
+
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="h-full overflow-y-auto p-4 space-y-4"
-    >
+      className="h-full overflow-y-auto p-4 space-y-4">
+
       <div className="flex items-center gap-2 pb-2 border-b border-border">
         <span className="text-xs uppercase tracking-wider text-muted-foreground">
           {element.type}
@@ -561,8 +561,8 @@ const PropertyPanel = memo(({ selectedElements, onUpdateElement, onBringToFront,
       {element.type === 'button' && renderButtonProperties()}
       {element.type === 'auto-layout' && renderAutoLayoutProperties()}
       {['rectangle', 'circle', 'frame', 'container'].includes(element.type) && renderFillProperties()}
-    </motion.div>
-  );
+    </motion.div>);
+
 });
 
 PropertyPanel.displayName = 'PropertyPanel';
