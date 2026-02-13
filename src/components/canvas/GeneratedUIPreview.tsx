@@ -1,16 +1,16 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { GeneratedUI } from './types';
-import { 
-  Move, 
-  ZoomIn, 
-  ZoomOut, 
-  RotateCcw, 
+import {
+  Move,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
   Download,
   Pencil,
   MousePointer,
-  Maximize2
-} from 'lucide-react';
+  Maximize2 } from
+'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
@@ -18,14 +18,14 @@ import { useToast } from '@/hooks/use-toast';
 interface GeneratedUIPreviewProps {
   generatedUI: GeneratedUI | null;
   isLoading: boolean;
-  onRegenerateArea?: (area: { x: number; y: number; width: number; height: number }, prompt: string) => void;
+  onRegenerateArea?: (area: {x: number;y: number;width: number;height: number;}, prompt: string) => void;
   onDrawOver?: (enabled: boolean) => void;
 }
 
 type EditMode = 'view' | 'move' | 'draw' | 'select';
 
-const GeneratedUIPreview = ({ 
-  generatedUI, 
+const GeneratedUIPreview = ({
+  generatedUI,
   isLoading,
   onRegenerateArea,
   onDrawOver
@@ -35,14 +35,14 @@ const GeneratedUIPreview = ({
   const [editMode, setEditMode] = useState<EditMode>('view');
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [selection, setSelection] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [selection, setSelection] = useState<{x: number;y: number;width: number;height: number;} | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStart, setSelectionStart] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const handleZoomIn = () => setScale(prev => Math.min(prev + 0.25, 3));
-  const handleZoomOut = () => setScale(prev => Math.max(prev - 0.25, 0.25));
+  const handleZoomIn = () => setScale((prev) => Math.min(prev + 0.25, 3));
+  const handleZoomOut = () => setScale((prev) => Math.max(prev - 0.25, 0.25));
   const handleReset = () => {
     setScale(1);
     setPosition({ x: 0, y: 0 });
@@ -55,9 +55,9 @@ const GeneratedUIPreview = ({
     } else if (editMode === 'select' && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       setIsSelecting(true);
-      setSelectionStart({ 
-        x: e.clientX - rect.left, 
-        y: e.clientY - rect.top 
+      setSelectionStart({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
       });
       setSelection(null);
     }
@@ -73,7 +73,7 @@ const GeneratedUIPreview = ({
       const rect = containerRef.current.getBoundingClientRect();
       const currentX = e.clientX - rect.left;
       const currentY = e.clientY - rect.top;
-      
+
       setSelection({
         x: Math.min(selectionStart.x, currentX),
         y: Math.min(selectionStart.y, currentY),
@@ -98,14 +98,14 @@ const GeneratedUIPreview = ({
 
   const handleDownload = () => {
     if (!generatedUI?.imageUrl) return;
-    
+
     const link = document.createElement('a');
     link.href = generatedUI.imageUrl;
     link.download = `generated-ui-${Date.now()}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     toast({
       title: 'Downloaded!',
       description: 'UI image saved to your device'
@@ -114,7 +114,7 @@ const GeneratedUIPreview = ({
 
   const handleRegenerateSelection = () => {
     if (!selection || !onRegenerateArea) return;
-    
+
     const prompt = window.prompt('Describe what you want in this area:');
     if (prompt) {
       onRegenerateArea(selection, prompt);
@@ -134,13 +134,13 @@ const GeneratedUIPreview = ({
           <p className="text-foreground font-medium">Creating your UI...</p>
           <p className="text-sm text-muted-foreground mt-1">Applying your design system</p>
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
   if (!generatedUI?.imageUrl) {
     return (
-      <div className="h-full flex items-center justify-center p-6 bg-secondary/30">
+      <div className="h-full flex items-center justify-center p-6 bg-muted">
         <div className="text-center">
           <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4">
             <Maximize2 className="w-8 h-8 text-muted-foreground" />
@@ -150,16 +150,16 @@ const GeneratedUIPreview = ({
             Draw a sketch and describe your vision<br />in the chat to generate
           </p>
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="h-full flex flex-col bg-[repeating-linear-gradient(45deg,var(--secondary)_0,var(--secondary)_10px,transparent_10px,transparent_20px)]"
-    >
+      className="h-full flex flex-col bg-[repeating-linear-gradient(45deg,var(--secondary)_0,var(--secondary)_10px,transparent_10px,transparent_20px)]">
+
       {/* Toolbar */}
       <div className="flex items-center justify-between p-2 border-b border-border/50 bg-background/95 backdrop-blur-sm">
         <div className="flex items-center gap-1">
@@ -168,8 +168,8 @@ const GeneratedUIPreview = ({
             size="icon"
             className="h-8 w-8"
             onClick={() => setEditMode('view')}
-            title="View"
-          >
+            title="View">
+
             <MousePointer className="w-4 h-4" />
           </Button>
           <Button
@@ -177,8 +177,8 @@ const GeneratedUIPreview = ({
             size="icon"
             className="h-8 w-8"
             onClick={() => setEditMode('move')}
-            title="Move & Resize"
-          >
+            title="Move & Resize">
+
             <Move className="w-4 h-4" />
           </Button>
           <Button
@@ -186,8 +186,8 @@ const GeneratedUIPreview = ({
             size="icon"
             className="h-8 w-8"
             onClick={() => setEditMode('draw')}
-            title="Draw Over"
-          >
+            title="Draw Over">
+
             <Pencil className="w-4 h-4" />
           </Button>
           <Button
@@ -195,8 +195,8 @@ const GeneratedUIPreview = ({
             size="icon"
             className="h-8 w-8"
             onClick={() => setEditMode('select')}
-            title="Select Area to Regenerate"
-          >
+            title="Select Area to Regenerate">
+
             <Maximize2 className="w-4 h-4" />
           </Button>
         </div>
@@ -211,8 +211,8 @@ const GeneratedUIPreview = ({
               min={25}
               max={300}
               step={25}
-              onValueChange={([v]) => setScale(v / 100)}
-            />
+              onValueChange={([v]) => setScale(v / 100)} />
+
           </div>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomIn}>
             <ZoomIn className="w-4 h-4" />
@@ -228,71 +228,71 @@ const GeneratedUIPreview = ({
       </div>
 
       {/* Canvas Area */}
-      <div 
+      <div
         ref={containerRef}
         className="flex-1 overflow-hidden relative"
         style={{ cursor: editMode === 'move' ? 'grab' : editMode === 'select' ? 'crosshair' : 'default' }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-      >
-        <div 
+        onMouseLeave={handleMouseUp}>
+
+        <div
           className="absolute inset-0 flex items-center justify-center"
           style={{
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
             transformOrigin: 'center center'
-          }}
-        >
+          }}>
+
           <img
             src={generatedUI.imageUrl}
             alt="Generated UI"
             className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-            draggable={false}
-          />
+            draggable={false} />
+
         </div>
 
         {/* Selection Overlay */}
-        {selection && (
-          <div
-            className="absolute border-2 border-primary border-dashed bg-primary/10"
-            style={{
-              left: selection.x,
-              top: selection.y,
-              width: selection.width,
-              height: selection.height
-            }}
-          >
-            {!isSelecting && selection.width > 50 && selection.height > 30 && (
-              <Button
-                size="sm"
-                className="absolute -bottom-10 left-1/2 -translate-x-1/2"
-                onClick={handleRegenerateSelection}
-              >
+        {selection &&
+        <div
+          className="absolute border-2 border-primary border-dashed bg-primary/10"
+          style={{
+            left: selection.x,
+            top: selection.y,
+            width: selection.width,
+            height: selection.height
+          }}>
+
+            {!isSelecting && selection.width > 50 && selection.height > 30 &&
+          <Button
+            size="sm"
+            className="absolute -bottom-10 left-1/2 -translate-x-1/2"
+            onClick={handleRegenerateSelection}>
+
                 Regenerate Area
               </Button>
-            )}
+          }
           </div>
-        )}
+        }
       </div>
 
       {/* Design Notes */}
-      {generatedUI.designNotes && generatedUI.designNotes.length > 0 && (
-        <div className="p-2 border-t border-border/50 bg-background/95">
+      {generatedUI.designNotes && generatedUI.designNotes.length > 0 &&
+      <div className="p-2 border-t border-border/50 bg-background/95">
           <div className="flex flex-wrap gap-1">
-            {generatedUI.designNotes.map((note, i) => (
-              <span
-                key={i}
-                className="px-2 py-0.5 text-xs rounded-full bg-secondary text-muted-foreground"
-              >
+            {generatedUI.designNotes.map((note, i) =>
+          <span
+            key={i}
+            className="px-2 py-0.5 text-xs rounded-full bg-secondary text-muted-foreground">
+
                 {note}
               </span>
-            ))}
+          )}
           </div>
         </div>
-      )}
-    </motion.div>
-  );
+      }
+    </motion.div>);
+
 };
 
 export default GeneratedUIPreview;
