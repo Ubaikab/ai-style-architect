@@ -127,7 +127,7 @@ const VisionSection = ({ generatedUI, isLoading }: VisionSectionProps) => {
             {/* Preview Area */}
             <div
               ref={containerRef}
-              className="h-[500px] overflow-hidden relative bg-[repeating-linear-gradient(45deg,hsl(var(--secondary))_0,hsl(var(--secondary))_10px,transparent_10px,transparent_20px)] bg-muted"
+              className="h-[500px] overflow-hidden relative bg-[repeating-linear-gradient(45deg,hsl(var(--secondary))_0,hsl(var(--secondary))_10px,transparent_10px,transparent_20px)] bg-muted text-muted border-muted"
               style={{ cursor: generatedUI?.imageUrl ? 'grab' : 'default' }}
               onMouseDown={generatedUI?.imageUrl ? handleMouseDown : undefined}
               onMouseMove={generatedUI?.imageUrl ? handleMouseMove : undefined}
