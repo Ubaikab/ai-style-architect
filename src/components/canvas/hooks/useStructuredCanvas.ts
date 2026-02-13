@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   CanvasElement, 
   StructuredCanvasState, 
@@ -26,6 +26,25 @@ const generateId = () => `el-${Date.now()}-${Math.random().toString(36).substr(2
 const GRID_SIZE = 10;
 const snapToGrid = (value: number): number => Math.round(value / GRID_SIZE) * GRID_SIZE;
 
+const STORAGE_KEY = 'design-studio-canvas';
+
+const loadCanvasFromStorage = (): { elements: Record<string, CanvasElement>; rootIds: string[] } | null => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.elements && parsed.rootIds) return parsed;
+    }
+  } catch { /* ignore */ }
+  return null;
+};
+
+const saveCanvasToStorage = (elements: Record<string, CanvasElement>, rootIds: string[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ elements, rootIds }));
+  } catch { /* ignore */ }
+};
+
 // Default element factories
 const createDefaultBounds = (x: number, y: number, width: number, height: number): Bounds => ({
   x, y, width, height
@@ -47,14 +66,22 @@ const createDefaultTextStyle = () => ({
 });
 
 export const useStructuredCanvas = () => {
-  const [state, setState] = useState<StructuredCanvasState>({
-    elements: {},
-    rootIds: [],
-    selectedIds: [],
-    hoveredId: null,
-    clipboard: [],
-    history: { past: [], future: [] }
+  const [state, setState] = useState<StructuredCanvasState>(() => {
+    const saved = loadCanvasFromStorage();
+    return {
+      elements: saved?.elements ?? {},
+      rootIds: saved?.rootIds ?? [],
+      selectedIds: [],
+      hoveredId: null,
+      clipboard: [],
+      history: { past: [], future: [] }
+    };
   });
+
+  // Persist canvas to localStorage on every change
+  useEffect(() => {
+    saveCanvasToStorage(state.elements, state.rootIds);
+  }, [state.elements, state.rootIds]);
 
   const [activeTool, setActiveTool] = useState<StructuredTool>('select');
   const [snapGuides, setSnapGuides] = useState<SnapGuide[]>([]);
