@@ -54,7 +54,7 @@ const SaveDesignButton = ({
         color_palette: colorPalette ? JSON.parse(JSON.stringify(colorPalette)) : null,
         generated_ui: generatedUI ? JSON.parse(JSON.stringify(generatedUI)) : null,
       };
-      const { error } = await supabase.from('saved_designs').insert(insertData);
+      const { error } = await (supabase as any).from('saved_designs').insert(insertData);
 
       if (error) throw error;
 

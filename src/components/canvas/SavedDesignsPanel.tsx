@@ -47,7 +47,7 @@ const SavedDesignsPanel = ({ onLoadDesign }: SavedDesignsPanelProps) => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('saved_designs')
         .select('*')
         .eq('user_id', user.id)
@@ -81,7 +81,7 @@ const SavedDesignsPanel = ({ onLoadDesign }: SavedDesignsPanelProps) => {
     if (!deleteId) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('saved_designs')
         .delete()
         .eq('id', deleteId);
