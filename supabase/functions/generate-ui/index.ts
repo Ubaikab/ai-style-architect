@@ -1,171 +1,228 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-interface WireframeElement {
-  type: string;
-  name: string;
-  dimensions: { width: number; height: number };
-  style: Record<string, unknown>;
-  layout?: {
-    direction: string;
-    gap: number;
-    padding: { top: number; right: number; bottom: number; left: number };
-    alignItems: string;
-    justifyContent: string;
-  };
-  text?: string;
-  placeholder?: string;
-  children: WireframeElement[];
-}
-
-interface StyleGuide {
-  theme: { mode: string; name: string };
-  colors: {
-    name: string;
-    colors: { name: string; hex: string; usage: string }[];
-  }[];
-  typography: {
-    name: string;
-    styles: {
-      name: string;
-      fontFamily: string;
-      fontSize: string;
-      fontWeight: string;
-      lineHeight: string;
-      usage: string;
-    }[];
-  }[];
-}
-
-serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { wireframe, styleGuide, projectId } = await req.json();
+    const { sketchBase64, moodboardBase64, colorPalette, typography, prompt, conversationHistory } = await req.json();
 
-    if (!wireframe || !styleGuide) {
+    if (!sketchBase64) {
       return new Response(
-        JSON.stringify({ error: "Wireframe and style guide are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: 'Sketch image is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    if (!prompt) {
+      return new Response(
+        JSON.stringify({ error: 'Prompt is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Build prompt for AI
-    const systemPrompt = `You are an expert React developer. Your task is to transform a wireframe structure into beautiful, responsive React components using Tailwind CSS.
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      console.error('LOVABLE_API_KEY not configured');
+      return new Response(
+        JSON.stringify({ error: 'AI service not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-You will receive:
-1. A structured wireframe layout (JSON) describing UI elements and their hierarchy
-2. A design system with colors and typography extracted from mood boards
+    console.log('Generating visual UI from sketch with prompt:', prompt);
 
-Your output must be a complete, self-contained React component that:
-- Uses the exact colors and typography from the design system
-- Maintains the layout structure from the wireframe
-- Applies proper Tailwind CSS classes for styling
-- Is responsive and mobile-friendly
-- Uses semantic HTML elements
-- Follows React best practices
+    // Build context from design system
+    let designContext = '';
+    
+    if (colorPalette) {
+      designContext += `\nColor Palette to use:
+- Primary: ${colorPalette.primary.hex} (${colorPalette.primary.usage})
+- Secondary: ${colorPalette.secondary.hex} (${colorPalette.secondary.usage})
+- Accent: ${colorPalette.accent.hex} (${colorPalette.accent.usage})
+- Background: ${colorPalette.background.hex}
+- Surface: ${colorPalette.surface.hex}
+- Text: ${colorPalette.text.hex}
+- Muted: ${colorPalette.muted.hex}
+- Border: ${colorPalette.border.hex}
+Color mood: ${colorPalette.mood}, Harmony: ${colorPalette.harmony}`;
+    }
 
-The component should be beautiful and production-ready, not a basic wireframe representation.`;
+    if (typography?.typography) {
+      designContext += `\nTypography to use:
+- Headings: ${typography.typography.fonts.heading.family}
+- Body: ${typography.typography.fonts.body.family}
+- Aesthetic: ${typography.typography.aesthetic}`;
+    }
 
-    const userPrompt = `Transform this wireframe into a beautiful React component:
+    // Build conversation context
+    let conversationContext = '';
+    if (conversationHistory && conversationHistory.length > 0) {
+      conversationContext = '\n\nPrevious conversation:\n' + 
+        conversationHistory.map((msg: { role: string; content: string }) => 
+          `${msg.role}: ${msg.content}`
+        ).join('\n');
+    }
 
-## Wireframe Structure:
-${JSON.stringify(wireframe, null, 2)}
+    // Image generation prompt
+    const imagePrompt = `Create a beautiful, modern, high-fidelity UI design based on this wireframe sketch.
 
-## Design System:
+User's request: ${prompt}
+${designContext}
+${conversationContext}
 
-### Colors:
-${JSON.stringify(styleGuide.colors, null, 2)}
+Transform the rough wireframe into a polished, professional UI mockup. Apply the color palette and typography from the design system. Make it look like a real, production-ready interface with:
+- Clean layouts with proper spacing and alignment
+- Modern UI elements (buttons, cards, inputs with rounded corners)
+- Subtle shadows and depth
+- Professional visual hierarchy
+- The exact colors from the provided palette
+- Cohesive, beautiful aesthetic matching the mood board style
 
-### Typography:
-${JSON.stringify(styleGuide.typography, null, 2)}
+Output a single complete UI screen design.`;
 
-### Theme:
-${JSON.stringify(styleGuide.theme, null, 2)}
-
-Generate a single React functional component that:
-1. Implements the exact layout structure from the wireframe
-2. Uses the color palette from the design system (apply as inline styles or CSS custom properties)
-3. Uses the typography styles appropriately
-4. Makes it visually stunning with gradients, shadows, and modern styling
-5. Ensures it's fully responsive
-
-Return ONLY the React component code, no explanations. The component should be named "GeneratedUI" and export as default.`;
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
+    // Use image generation model
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: 'google/gemini-2.5-flash-image',
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+          { 
+            role: 'user', 
+            content: [
+              { 
+                type: 'image_url', 
+                image_url: { url: `data:image/png;base64,${sketchBase64}` }
+              },
+              ...(moodboardBase64 ? [{
+                type: 'image_url',
+                image_url: { url: `data:image/png;base64,${moodboardBase64}` }
+              }] : []),
+              { 
+                type: 'text', 
+                text: imagePrompt
+              }
+            ]
+          }
         ],
+        temperature: 0.7,
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI Gateway error:", response.status, errorText);
-      
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: 'Credits required. Please add funds to continue.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      
-      throw new Error(`AI request failed: ${response.status}`);
+      const errorText = await response.text();
+      console.error('AI gateway error:', response.status, errorText);
+      return new Response(
+        JSON.stringify({ error: 'AI service error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    const aiResponse = await response.json();
-    const generatedCode = aiResponse.choices?.[0]?.message?.content;
-
-    if (!generatedCode) {
-      throw new Error("No code generated from AI");
+    const data = await response.json();
+    console.log('AI response received:', JSON.stringify(data).slice(0, 500));
+    
+    // Extract image from response
+    const choice = data.choices?.[0];
+    const message = choice?.message;
+    
+    let imageBase64 = '';
+    let description = '';
+    
+    // Check for images array format (Gemini image generation response)
+    if (message?.images && Array.isArray(message.images)) {
+      for (const img of message.images) {
+        if (img.type === 'image_url' && img.image_url?.url) {
+          const dataUrl = img.image_url.url;
+          if (dataUrl.startsWith('data:image')) {
+            imageBase64 = dataUrl.split(',')[1] || '';
+          } else {
+            imageBase64 = dataUrl;
+          }
+          break;
+        }
+      }
+    }
+    
+    // Handle content-based response formats as fallback
+    if (!imageBase64 && message?.content) {
+      if (Array.isArray(message.content)) {
+        for (const part of message.content) {
+          if (part.type === 'image_url' && part.image_url?.url) {
+            const dataUrl = part.image_url.url;
+            if (dataUrl.startsWith('data:image')) {
+              imageBase64 = dataUrl.split(',')[1] || '';
+            } else {
+              imageBase64 = dataUrl;
+            }
+          } else if (part.type === 'text') {
+            description = part.text || '';
+          } else if (part.inline_data?.data) {
+            imageBase64 = part.inline_data.data;
+          }
+        }
+      } else if (typeof message.content === 'string') {
+        if (message.content.startsWith('data:image')) {
+          imageBase64 = message.content.split(',')[1] || '';
+        } else {
+          description = message.content;
+        }
+      }
     }
 
-    // Extract just the code block if wrapped in markdown
-    let cleanCode = generatedCode;
-    const codeBlockMatch = generatedCode.match(/```(?:jsx|tsx|javascript|typescript)?\n?([\s\S]*?)```/);
-    if (codeBlockMatch) {
-      cleanCode = codeBlockMatch[1].trim();
+    if (!imageBase64) {
+      console.error('No image in response:', JSON.stringify(data));
+      return new Response(
+        JSON.stringify({ error: 'Failed to generate image. Please try a different prompt.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
+    const generatedUI = {
+      imageBase64,
+      imageUrl: `data:image/png;base64,${imageBase64}`,
+      prompt,
+      description: description || 'UI generated from your sketch',
+      designNotes: [
+        colorPalette ? `Applied ${colorPalette.mood} color palette` : 'No color palette applied',
+        typography ? `Using ${typography.typography.fonts.heading.family} for headings` : 'Default typography',
+        'Generated as high-fidelity mockup'
+      ]
+    };
+
+    console.log('UI generation successful');
     return new Response(
-      JSON.stringify({
-        success: true,
-        code: cleanCode,
-        projectId,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ success: true, data: generatedUI }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error) {
-    console.error("Generate UI error:", error);
+    console.error('Error generating UI:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate UI';
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: errorMessage }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
