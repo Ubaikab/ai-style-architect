@@ -14,12 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
+      credit_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          project_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          project_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          project_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mood_board_images: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          project_id: string
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          project_id: string
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          project_id?: string
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mood_board_images_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
+          credits: number
+          display_name: string | null
           email: string | null
-          full_name: string | null
           id: string
           updated_at: string
           user_id: string
@@ -27,8 +107,9 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          credits?: number
+          display_name?: string | null
           email?: string | null
-          full_name?: string | null
           id?: string
           updated_at?: string
           user_id: string
@@ -36,48 +117,43 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          credits?: number
+          display_name?: string | null
           email?: string | null
-          full_name?: string | null
           id?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: []
       }
-      saved_designs: {
+      projects: {
         Row: {
-          color_palette: Json | null
           created_at: string
-          generated_ui: Json | null
+          description: string | null
           id: string
           name: string
-          sketch_data: Json | null
-          thumbnail_url: string | null
-          typography_system: Json | null
+          status: string
+          style_guide: Json | null
           updated_at: string
           user_id: string
         }
         Insert: {
-          color_palette?: Json | null
           created_at?: string
-          generated_ui?: Json | null
+          description?: string | null
           id?: string
-          name?: string
-          sketch_data?: Json | null
-          thumbnail_url?: string | null
-          typography_system?: Json | null
+          name: string
+          status?: string
+          style_guide?: Json | null
           updated_at?: string
           user_id: string
         }
         Update: {
-          color_palette?: Json | null
           created_at?: string
-          generated_ui?: Json | null
+          description?: string | null
           id?: string
           name?: string
-          sketch_data?: Json | null
-          thumbnail_url?: string | null
-          typography_system?: Json | null
+          status?: string
+          style_guide?: Json | null
           updated_at?: string
           user_id?: string
         }
@@ -88,7 +164,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      is_current_user: { Args: { check_user_id: string }; Returns: boolean }
+      consume_credit: { Args: { p_user_id: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never
