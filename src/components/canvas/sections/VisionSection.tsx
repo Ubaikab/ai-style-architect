@@ -147,7 +147,7 @@ const VisionSection = ({ generatedUI, isLoading }: VisionSectionProps) => {
                 </div> :
               generatedUI?.imageUrl ?
               <div
-                className="absolute inset-0 flex items-center justify-center"
+                className="absolute inset-0 flex items-center justify-center bg-muted"
                 style={{
                   transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
                   transformOrigin: 'center center'
@@ -156,14 +156,14 @@ const VisionSection = ({ generatedUI, isLoading }: VisionSectionProps) => {
                   <img
                   src={generatedUI.imageUrl}
                   alt="Generated UI"
-                  className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                  className="max-w-full max-h-full rounded-lg shadow-2xl object-fill"
                   draggable={false} />
 
                 </div> :
 
-              <div className="absolute inset-0 flex items-center justify-center bg-muted">
+              <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center p-6">
-                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-muted">
+                    <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-4">
                       <Maximize2 className="w-8 h-8 text-muted-foreground" />
                     </div>
                     <p className="text-foreground font-medium mb-1">Your Design Will Appear Here</p>
@@ -182,7 +182,7 @@ const VisionSection = ({ generatedUI, isLoading }: VisionSectionProps) => {
                   {generatedUI.designNotes.map((note, i) =>
                 <span
                   key={i}
-                  className="px-2 py-1 text-xs rounded-full bg-secondary text-muted-foreground">
+                  className="px-2 py-1 text-xs rounded-full text-muted-foreground bg-muted">
 
                       {note}
                     </span>
