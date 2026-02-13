@@ -13,13 +13,6 @@ serve(async (req) => {
   try {
     const { sketchBase64, moodboardBase64, colorPalette, typography, prompt, conversationHistory } = await req.json();
 
-    if (!sketchBase64) {
-      return new Response(
-        JSON.stringify({ error: 'Sketch image is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     if (!prompt) {
       return new Response(
         JSON.stringify({ error: 'Prompt is required' }),
@@ -100,10 +93,10 @@ Output a single complete UI screen design.`;
           { 
             role: 'user', 
             content: [
-              { 
+              ...(sketchBase64 ? [{
                 type: 'image_url', 
                 image_url: { url: `data:image/png;base64,${sketchBase64}` }
-              },
+              }] : []),
               ...(moodboardBase64 ? [{
                 type: 'image_url',
                 image_url: { url: `data:image/png;base64,${moodboardBase64}` }
