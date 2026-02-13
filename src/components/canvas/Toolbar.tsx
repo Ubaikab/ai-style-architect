@@ -43,13 +43,13 @@ const tools: { tool: Tool; icon: typeof MousePointer; label: string }[] = [
 ];
 
 const colors = [
-  '#a855f7', // primary violet
-  '#ec4899', // pink
+  '#8B5CF6', // primary violet
+  '#A855F7', // light violet
+  '#6366F1', // indigo
   '#3b82f6', // blue
   '#22c55e', // green
   '#eab308', // yellow
-  '#f97316', // orange
-  '#ef4444', // red
+  '#06b6d4', // cyan
   '#ffffff', // white
 ];
 

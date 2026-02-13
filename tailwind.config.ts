@@ -61,8 +61,7 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        violet: "hsl(var(--violet))",
-        pink: "hsl(var(--pink))",
+        violet: "hsl(var(--secondary))",
       },
       borderRadius: {
         lg: "var(--radius)",
