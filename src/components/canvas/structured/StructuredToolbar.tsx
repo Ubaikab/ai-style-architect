@@ -56,8 +56,6 @@ const toolGroups: {
     tools: [
       { tool: 'frame', icon: Frame, label: 'Frame (F)' },
       { tool: 'container', icon: LayoutGrid, label: 'Container' },
-      { tool: 'auto-layout-v', icon: AlignVerticalJustifyStart, label: 'V Stack' },
-      { tool: 'auto-layout-h', icon: AlignHorizontalJustifyStart, label: 'H Stack' },
     ]
   },
   {
