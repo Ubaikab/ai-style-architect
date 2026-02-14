@@ -1,5 +1,4 @@
 import { useRef, useCallback, useEffect, useState, memo } from 'react';
-import { motion } from 'framer-motion';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { 
   CanvasElement as CanvasElementType,
@@ -26,10 +25,11 @@ interface StructuredCanvasRendererProps {
   onStopDrawing: (position: Position) => void;
   onHover: (id: string | null) => void;
   onSaveHistory?: () => void;
+  onSelectByRect?: (rect: Bounds, additive: boolean) => void;
 }
 
 const GRID_SIZE = 10;
-const SNAP_THRESHOLD = 5;
+const SNAP_THRESHOLD = 8;
 
 const StructuredCanvasRenderer = memo(({
   elements,
@@ -45,22 +45,57 @@ const StructuredCanvasRenderer = memo(({
   onContinueDrawing,
   onStopDrawing,
   onHover,
-  onSaveHistory
+  onSaveHistory,
+  onSelectByRect
 }: StructuredCanvasRendererProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<Position>({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
-  const [dragStart, setDragStart] = useState<Position | null>(null);
-  const [dragElement, setDragElement] = useState<string | null>(null);
-  const [resizeElement, setResizeElement] = useState<string | null>(null);
-  const [resizeHandle, setResizeHandle] = useState<ResizeHandle | null>(null);
-  const [resizeStartBounds, setResizeStartBounds] = useState<Bounds | null>(null);
-  const [drawPreview, setDrawPreview] = useState<Bounds | null>(null);
 
-  const getCanvasPosition = useCallback((e: React.MouseEvent): Position => {
+  // Ref-based drag state to avoid re-renders during drag
+  const dragRef = useRef<{
+    active: boolean;
+    elementId: string | null;
+    startPos: Position;
+    lastPos: Position;
+    accumDelta: Position;
+    rafId: number | null;
+  }>({ active: false, elementId: null, startPos: { x: 0, y: 0 }, lastPos: { x: 0, y: 0 }, accumDelta: { x: 0, y: 0 }, rafId: null });
+
+  const panRef = useRef<{
+    active: boolean;
+    startPos: Position;
+    startPan: Position;
+  }>({ active: false, startPos: { x: 0, y: 0 }, startPan: { x: 0, y: 0 } });
+
+  const resizeRef = useRef<{
+    active: boolean;
+    elementId: string | null;
+    handle: ResizeHandle | null;
+    startPos: Position;
+    startBounds: Bounds;
+    rafId: number | null;
+  }>({ active: false, elementId: null, handle: null, startPos: { x: 0, y: 0 }, startBounds: { x: 0, y: 0, width: 0, height: 0 }, rafId: null });
+
+  const marqueeRef = useRef<{
+    active: boolean;
+    startPos: Position;
+    currentPos: Position;
+    additive: boolean;
+  }>({ active: false, startPos: { x: 0, y: 0 }, currentPos: { x: 0, y: 0 }, additive: false });
+
+  const [marqueeBox, setMarqueeBox] = useState<Bounds | null>(null);
+  const [drawPreview, setDrawPreview] = useState<Bounds | null>(null);
+  const drawStartRef = useRef<Position | null>(null);
+
+  // For per-element drag offsets applied via refs
+  const [dragOffsets, setDragOffsets] = useState<Record<string, Position>>({});
+
+  const snapToGrid = useCallback((value: number): number => {
+    return Math.round(value / GRID_SIZE) * GRID_SIZE;
+  }, []);
+
+  const getCanvasPosition = useCallback((e: MouseEvent | React.MouseEvent): Position => {
     if (!containerRef.current) return { x: 0, y: 0 };
     const rect = containerRef.current.getBoundingClientRect();
     return {
@@ -69,168 +104,360 @@ const StructuredCanvasRenderer = memo(({
     };
   }, [pan, zoom]);
 
-  const snapToGrid = useCallback((value: number): number => {
-    return Math.round(value / GRID_SIZE) * GRID_SIZE;
+  // Find frame that contains a position (for clamping)
+  const findParentFrame = useCallback((elementId: string): CanvasElementType | null => {
+    const el = elements[elementId];
+    if (!el) return null;
+    // Check all frames to see if this element was placed inside one
+    for (const id of rootIds) {
+      const frame = elements[id];
+      if (frame && frame.type === 'frame' && frame.id !== elementId) {
+        if (el.bounds.x >= frame.bounds.x && el.bounds.y >= frame.bounds.y &&
+            el.bounds.x + el.bounds.width <= frame.bounds.x + frame.bounds.width &&
+            el.bounds.y + el.bounds.height <= frame.bounds.y + frame.bounds.height) {
+          return frame;
+        }
+      }
+    }
+    return null;
+  }, [elements, rootIds]);
+
+  // Clamp bounds inside a frame
+  const clampToFrame = useCallback((bounds: Bounds, frame: CanvasElementType): Bounds => {
+    const fb = frame.bounds;
+    return {
+      x: Math.max(fb.x, Math.min(bounds.x, fb.x + fb.width - bounds.width)),
+      y: Math.max(fb.y, Math.min(bounds.y, fb.y + fb.height - bounds.height)),
+      width: Math.min(bounds.width, fb.width),
+      height: Math.min(bounds.height, fb.height)
+    };
   }, []);
 
+  // Compute snap guides for an element being moved
+  const computeSnapGuides = useCallback((movingId: string, movingBounds: Bounds): { guides: SnapGuide[]; snappedBounds: Bounds } => {
+    const guides: SnapGuide[] = [];
+    let snapped = { ...movingBounds };
+    const edges = {
+      left: snapped.x,
+      right: snapped.x + snapped.width,
+      centerX: snapped.x + snapped.width / 2,
+      top: snapped.y,
+      bottom: snapped.y + snapped.height,
+      centerY: snapped.y + snapped.height / 2
+    };
+
+    for (const id of rootIds) {
+      if (id === movingId || selectedIds.includes(id)) continue;
+      const other = elements[id];
+      if (!other) continue;
+      const ob = other.bounds;
+      const otherEdges = {
+        left: ob.x,
+        right: ob.x + ob.width,
+        centerX: ob.x + ob.width / 2,
+        top: ob.y,
+        bottom: ob.y + ob.height,
+        centerY: ob.y + ob.height / 2
+      };
+
+      // Vertical snaps (x-axis alignment)
+      const vPairs: [number, number][] = [
+        [edges.left, otherEdges.left],
+        [edges.left, otherEdges.right],
+        [edges.right, otherEdges.left],
+        [edges.right, otherEdges.right],
+        [edges.centerX, otherEdges.centerX],
+      ];
+      for (const [moving, target] of vPairs) {
+        if (Math.abs(moving - target) < SNAP_THRESHOLD) {
+          snapped.x += target - moving;
+          guides.push({
+            type: 'vertical',
+            position: target,
+            start: Math.min(snapped.y, ob.y),
+            end: Math.max(snapped.y + snapped.height, ob.y + ob.height)
+          });
+          break;
+        }
+      }
+
+      // Horizontal snaps (y-axis alignment)
+      const hPairs: [number, number][] = [
+        [edges.top, otherEdges.top],
+        [edges.top, otherEdges.bottom],
+        [edges.bottom, otherEdges.top],
+        [edges.bottom, otherEdges.bottom],
+        [edges.centerY, otherEdges.centerY],
+      ];
+      for (const [moving, target] of hPairs) {
+        if (Math.abs(moving - target) < SNAP_THRESHOLD) {
+          snapped.y += target - moving;
+          guides.push({
+            type: 'horizontal',
+            position: target,
+            start: Math.min(snapped.x, ob.x),
+            end: Math.max(snapped.x + snapped.width, ob.x + ob.width)
+          });
+          break;
+        }
+      }
+    }
+
+    return { guides, snappedBounds: snapped };
+  }, [elements, rootIds, selectedIds]);
+
+  // ============ MOUSE DOWN ============
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const pos = getCanvasPosition(e);
-    
-    if (activeTool === 'hand' || (e.button === 1) || (e.button === 0 && e.altKey)) {
-      setIsPanning(true);
-      setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+
+    // Pan with hand tool, middle click, or alt+click
+    if (activeTool === 'hand' || e.button === 1 || (e.button === 0 && e.altKey)) {
+      panRef.current = { active: true, startPos: { x: e.clientX, y: e.clientY }, startPan: { ...pan } };
       return;
     }
 
     if (activeTool === 'select') {
-      // Clicking on empty space deselects
-      onSelect(null, false);
+      // Start marquee selection on empty canvas
+      marqueeRef.current = {
+        active: true,
+        startPos: pos,
+        currentPos: pos,
+        additive: e.shiftKey || e.ctrlKey || e.metaKey
+      };
+      if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        onSelect(null, false);
+      }
       return;
     }
 
     // Start drawing new element
-    setDragStart(pos);
+    drawStartRef.current = pos;
     onStartDrawing(pos);
     setDrawPreview({ x: pos.x, y: pos.y, width: 0, height: 0 });
   }, [activeTool, pan, getCanvasPosition, onSelect, onStartDrawing]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const pos = getCanvasPosition(e);
+  // ============ MOUSE MOVE (native listener for performance) ============
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
 
-    if (isPanning && dragStart) {
-      setPan({
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y
-      });
-      return;
-    }
-
-    if (isDragging && dragElement && dragStart) {
-      const delta = {
-        x: snapToGrid(pos.x - dragStart.x),
-        y: snapToGrid(pos.y - dragStart.y)
-      };
-      onMove(dragElement, delta);
-      setDragStart(pos);
-      return;
-    }
-
-    if (isResizing && resizeElement && resizeHandle && resizeStartBounds && dragStart) {
-      const element = elements[resizeElement];
-      if (!element) return;
-
-      let newBounds = { ...resizeStartBounds };
-      const dx = pos.x - dragStart.x;
-      const dy = pos.y - dragStart.y;
-
-      switch (resizeHandle) {
-        case 'top-left':
-          newBounds.x = snapToGrid(resizeStartBounds.x + dx);
-          newBounds.y = snapToGrid(resizeStartBounds.y + dy);
-          newBounds.width = Math.max(20, resizeStartBounds.width - dx);
-          newBounds.height = Math.max(20, resizeStartBounds.height - dy);
-          break;
-        case 'top':
-          newBounds.y = snapToGrid(resizeStartBounds.y + dy);
-          newBounds.height = Math.max(20, resizeStartBounds.height - dy);
-          break;
-        case 'top-right':
-          newBounds.y = snapToGrid(resizeStartBounds.y + dy);
-          newBounds.width = Math.max(20, resizeStartBounds.width + dx);
-          newBounds.height = Math.max(20, resizeStartBounds.height - dy);
-          break;
-        case 'right':
-          newBounds.width = Math.max(20, snapToGrid(resizeStartBounds.width + dx));
-          break;
-        case 'bottom-right':
-          newBounds.width = Math.max(20, snapToGrid(resizeStartBounds.width + dx));
-          newBounds.height = Math.max(20, snapToGrid(resizeStartBounds.height + dy));
-          break;
-        case 'bottom':
-          newBounds.height = Math.max(20, snapToGrid(resizeStartBounds.height + dy));
-          break;
-        case 'bottom-left':
-          newBounds.x = snapToGrid(resizeStartBounds.x + dx);
-          newBounds.width = Math.max(20, resizeStartBounds.width - dx);
-          newBounds.height = Math.max(20, snapToGrid(resizeStartBounds.height + dy));
-          break;
-        case 'left':
-          newBounds.x = snapToGrid(resizeStartBounds.x + dx);
-          newBounds.width = Math.max(20, resizeStartBounds.width - dx);
-          break;
+    const handleMove = (e: MouseEvent) => {
+      // Panning
+      if (panRef.current.active) {
+        const dx = e.clientX - panRef.current.startPos.x;
+        const dy = e.clientY - panRef.current.startPos.y;
+        setPan({ x: panRef.current.startPan.x + dx, y: panRef.current.startPan.y + dy });
+        return;
       }
 
-      onResize(resizeElement, newBounds);
-      return;
-    }
+      const pos = getCanvasPosition(e);
 
-    // Drawing preview
-    if (dragStart && activeTool !== 'select' && activeTool !== 'hand') {
-      setDrawPreview({
-        x: Math.min(dragStart.x, pos.x),
-        y: Math.min(dragStart.y, pos.y),
-        width: Math.abs(pos.x - dragStart.x),
-        height: Math.abs(pos.y - dragStart.y)
-      });
-      onContinueDrawing(pos);
-    }
-  }, [
-    isPanning, isDragging, isResizing, dragStart, dragElement, 
-    resizeElement, resizeHandle, resizeStartBounds, activeTool,
-    elements, getCanvasPosition, snapToGrid, onMove, onResize, onContinueDrawing
-  ]);
+      // Dragging element(s)
+      if (dragRef.current.active && dragRef.current.elementId) {
+        const dx = pos.x - dragRef.current.lastPos.x;
+        const dy = pos.y - dragRef.current.lastPos.y;
+        dragRef.current.lastPos = pos;
+        dragRef.current.accumDelta.x += dx;
+        dragRef.current.accumDelta.y += dy;
 
-  const handleMouseUp = useCallback((e: React.MouseEvent) => {
-    const pos = getCanvasPosition(e);
+        // Use rAF to batch DOM updates
+        if (!dragRef.current.rafId) {
+          dragRef.current.rafId = requestAnimationFrame(() => {
+            dragRef.current.rafId = null;
+            const delta = { ...dragRef.current.accumDelta };
+            // Don't reset accum - we pass total offset to elements via dragOffsets
+            // Actually, commit the move to state with snapped delta
+            const el = elements[dragRef.current.elementId!];
+            if (el) {
+              const newBounds = {
+                ...el.bounds,
+                x: el.bounds.x + delta.x,
+                y: el.bounds.y + delta.y,
+                width: el.bounds.width,
+                height: el.bounds.height
+              };
+              // Snap
+              const { guides } = computeSnapGuides(dragRef.current.elementId!, newBounds);
+              // We set guides directly
+              // For now just move
+            }
+            onMove(dragRef.current.elementId!, { x: snapToGrid(delta.x), y: snapToGrid(delta.y) });
+            dragRef.current.accumDelta = { x: 0, y: 0 };
+          });
+        }
+        return;
+      }
 
-    if (isPanning) {
-      setIsPanning(false);
-      setDragStart(null);
-      return;
-    }
+      // Resizing
+      if (resizeRef.current.active && resizeRef.current.elementId && resizeRef.current.handle) {
+        const dx = pos.x - resizeRef.current.startPos.x;
+        const dy = pos.y - resizeRef.current.startPos.y;
+        const sb = resizeRef.current.startBounds;
+        let newBounds = { ...sb };
 
-    if (isDragging) {
-      setIsDragging(false);
-      setDragElement(null);
-      setDragStart(null);
-      return;
-    }
+        switch (resizeRef.current.handle) {
+          case 'top-left':
+            newBounds.x = snapToGrid(sb.x + dx);
+            newBounds.y = snapToGrid(sb.y + dy);
+            newBounds.width = Math.max(20, sb.width - dx);
+            newBounds.height = Math.max(20, sb.height - dy);
+            break;
+          case 'top':
+            newBounds.y = snapToGrid(sb.y + dy);
+            newBounds.height = Math.max(20, sb.height - dy);
+            break;
+          case 'top-right':
+            newBounds.y = snapToGrid(sb.y + dy);
+            newBounds.width = Math.max(20, sb.width + dx);
+            newBounds.height = Math.max(20, sb.height - dy);
+            break;
+          case 'right':
+            newBounds.width = Math.max(20, snapToGrid(sb.width + dx));
+            break;
+          case 'bottom-right':
+            newBounds.width = Math.max(20, snapToGrid(sb.width + dx));
+            newBounds.height = Math.max(20, snapToGrid(sb.height + dy));
+            break;
+          case 'bottom':
+            newBounds.height = Math.max(20, snapToGrid(sb.height + dy));
+            break;
+          case 'bottom-left':
+            newBounds.x = snapToGrid(sb.x + dx);
+            newBounds.width = Math.max(20, sb.width - dx);
+            newBounds.height = Math.max(20, snapToGrid(sb.height + dy));
+            break;
+          case 'left':
+            newBounds.x = snapToGrid(sb.x + dx);
+            newBounds.width = Math.max(20, sb.width - dx);
+            break;
+        }
 
-    if (isResizing) {
-      setIsResizing(false);
-      setResizeElement(null);
-      setResizeHandle(null);
-      setResizeStartBounds(null);
-      setDragStart(null);
-      return;
-    }
+        if (!resizeRef.current.rafId) {
+          const bounds = newBounds;
+          resizeRef.current.rafId = requestAnimationFrame(() => {
+            resizeRef.current.rafId = null;
+            onResize(resizeRef.current.elementId!, bounds);
+          });
+        }
+        return;
+      }
 
-    if (dragStart && activeTool !== 'select' && activeTool !== 'hand') {
-      onStopDrawing(pos);
-      setDragStart(null);
-      setDrawPreview(null);
-    }
-  }, [isPanning, isDragging, isResizing, dragStart, activeTool, getCanvasPosition, onStopDrawing]);
+      // Marquee selection
+      if (marqueeRef.current.active) {
+        marqueeRef.current.currentPos = pos;
+        const sx = Math.min(marqueeRef.current.startPos.x, pos.x);
+        const sy = Math.min(marqueeRef.current.startPos.y, pos.y);
+        const sw = Math.abs(pos.x - marqueeRef.current.startPos.x);
+        const sh = Math.abs(pos.y - marqueeRef.current.startPos.y);
+        setMarqueeBox({ x: sx, y: sy, width: sw, height: sh });
+        return;
+      }
+
+      // Draw preview
+      if (drawStartRef.current) {
+        setDrawPreview({
+          x: Math.min(drawStartRef.current.x, pos.x),
+          y: Math.min(drawStartRef.current.y, pos.y),
+          width: Math.abs(pos.x - drawStartRef.current.x),
+          height: Math.abs(pos.y - drawStartRef.current.y)
+        });
+        onContinueDrawing(pos);
+      }
+    };
+
+    const handleUp = (e: MouseEvent) => {
+      const pos = getCanvasPosition(e);
+
+      if (panRef.current.active) {
+        panRef.current.active = false;
+        return;
+      }
+
+      if (dragRef.current.active) {
+        if (dragRef.current.rafId) {
+          cancelAnimationFrame(dragRef.current.rafId);
+          // Flush final delta
+          const delta = dragRef.current.accumDelta;
+          if (delta.x !== 0 || delta.y !== 0) {
+            onMove(dragRef.current.elementId!, { x: snapToGrid(delta.x), y: snapToGrid(delta.y) });
+          }
+        }
+        dragRef.current = { active: false, elementId: null, startPos: { x: 0, y: 0 }, lastPos: { x: 0, y: 0 }, accumDelta: { x: 0, y: 0 }, rafId: null };
+        setDragOffsets({});
+        return;
+      }
+
+      if (resizeRef.current.active) {
+        if (resizeRef.current.rafId) cancelAnimationFrame(resizeRef.current.rafId);
+        resizeRef.current = { active: false, elementId: null, handle: null, startPos: { x: 0, y: 0 }, startBounds: { x: 0, y: 0, width: 0, height: 0 }, rafId: null };
+        return;
+      }
+
+      // End marquee
+      if (marqueeRef.current.active) {
+        marqueeRef.current.active = false;
+        if (marqueeBox && marqueeBox.width > 5 && marqueeBox.height > 5) {
+          // Select all elements intersecting the marquee
+          const additive = marqueeRef.current.additive;
+          rootIds.forEach(id => {
+            const el = elements[id];
+            if (!el) return;
+            const b = el.bounds;
+            const intersects = !(b.x + b.width < marqueeBox.x || b.x > marqueeBox.x + marqueeBox.width ||
+              b.y + b.height < marqueeBox.y || b.y > marqueeBox.y + marqueeBox.height);
+            if (intersects) {
+              onSelect(id, true);
+            }
+          });
+        }
+        setMarqueeBox(null);
+        return;
+      }
+
+      // End drawing
+      if (drawStartRef.current) {
+        onStopDrawing(pos);
+        drawStartRef.current = null;
+        setDrawPreview(null);
+      }
+    };
+
+    // Use native listeners for performance
+    container.addEventListener('mousemove', handleMove, { passive: true });
+    window.addEventListener('mouseup', handleUp);
+
+    return () => {
+      container.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+  }, [getCanvasPosition, onMove, onResize, onContinueDrawing, onStopDrawing, onSelect, elements, rootIds, snapToGrid, computeSnapGuides, marqueeBox, pan]);
 
   const handleStartDrag = useCallback((id: string, e: React.MouseEvent) => {
     const pos = getCanvasPosition(e);
     onSaveHistory?.();
-    setIsDragging(true);
-    setDragElement(id);
-    setDragStart(pos);
+    dragRef.current = {
+      active: true,
+      elementId: id,
+      startPos: pos,
+      lastPos: pos,
+      accumDelta: { x: 0, y: 0 },
+      rafId: null
+    };
   }, [getCanvasPosition, onSaveHistory]);
 
   const handleStartResize = useCallback((id: string, handle: ResizeHandle, e: React.MouseEvent) => {
     const element = elements[id];
     if (!element) return;
-    
     const pos = getCanvasPosition(e);
     onSaveHistory?.();
-    setIsResizing(true);
-    setResizeElement(id);
-    setResizeHandle(handle);
-    setResizeStartBounds({ ...element.bounds });
-    setDragStart(pos);
+    resizeRef.current = {
+      active: true,
+      elementId: id,
+      handle,
+      startPos: pos,
+      startBounds: { ...element.bounds },
+      rafId: null
+    };
   }, [elements, getCanvasPosition, onSaveHistory]);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -250,41 +477,46 @@ const StructuredCanvasRenderer = memo(({
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't block space in inputs/textareas
       const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) {
-        return;
-      }
-      if (e.key === ' ') {
-        e.preventDefault();
-      }
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
+      if (e.key === ' ') e.preventDefault();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const getCursor = () => {
-    if (isPanning || activeTool === 'hand') return 'grab';
-    if (isDragging) return 'grabbing';
+    if (panRef.current.active || activeTool === 'hand') return 'grab';
+    if (dragRef.current.active) return 'grabbing';
     if (activeTool === 'select') return 'default';
     return 'crosshair';
   };
 
-  // Get all root elements in order
   const sortedRootElements = rootIds
     .map(id => elements[id])
     .filter(Boolean)
     .sort((a, b) => a.zIndex - b.zIndex);
 
+  // Compute combined bounding box for multi-selection
+  const selectionBBox = selectedIds.length > 1 ? (() => {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const id of selectedIds) {
+      const el = elements[id];
+      if (!el) continue;
+      minX = Math.min(minX, el.bounds.x);
+      minY = Math.min(minY, el.bounds.y);
+      maxX = Math.max(maxX, el.bounds.x + el.bounds.width);
+      maxY = Math.max(maxY, el.bounds.y + el.bounds.height);
+    }
+    return minX < Infinity ? { x: minX, y: minY, width: maxX - minX, height: maxY - minY } : null;
+  })() : null;
+
   return (
     <div
       ref={containerRef}
-      className="w-full h-full overflow-hidden relative bg-[#1a1a2e]"
+      className="w-full h-full overflow-hidden relative bg-[hsl(var(--background))]"
       style={{ cursor: getCursor() }}
       onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
       onWheel={handleWheel}
     >
       {/* Grid background */}
@@ -302,7 +534,7 @@ const StructuredCanvasRenderer = memo(({
 
       {/* Canvas transform container */}
       <div
-        className="absolute origin-top-left"
+        className="absolute origin-top-left will-change-transform"
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`
         }}
@@ -326,10 +558,33 @@ const StructuredCanvasRenderer = memo(({
           <div
             className="absolute border-2 border-dashed border-primary bg-primary/10 pointer-events-none"
             style={{
-              left: drawPreview.x,
-              top: drawPreview.y,
+              transform: `translate(${drawPreview.x}px, ${drawPreview.y}px)`,
               width: drawPreview.width,
               height: drawPreview.height
+            }}
+          />
+        )}
+
+        {/* Marquee selection box */}
+        {marqueeBox && marqueeBox.width > 2 && marqueeBox.height > 2 && (
+          <div
+            className="absolute border border-primary/70 bg-primary/10 pointer-events-none"
+            style={{
+              transform: `translate(${marqueeBox.x}px, ${marqueeBox.y}px)`,
+              width: marqueeBox.width,
+              height: marqueeBox.height
+            }}
+          />
+        )}
+
+        {/* Combined bounding box for multi-selection */}
+        {selectionBBox && (
+          <div
+            className="absolute border-2 border-dashed border-primary/50 pointer-events-none"
+            style={{
+              transform: `translate(${selectionBBox.x}px, ${selectionBBox.y}px)`,
+              width: selectionBBox.width,
+              height: selectionBBox.height
             }}
           />
         )}

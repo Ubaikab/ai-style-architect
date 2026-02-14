@@ -1,5 +1,4 @@
-import { memo, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { memo, useCallback, useRef, useEffect } from 'react';
 import { 
   CanvasElement as CanvasElementType,
   FrameElement,
@@ -24,6 +23,7 @@ interface CanvasElementProps {
   onStartDrag: (id: string, e: React.MouseEvent) => void;
   onStartResize: (id: string, handle: ResizeHandle, e: React.MouseEvent) => void;
   zoom: number;
+  dragOffset?: { x: number; y: number } | null;
 }
 
 const resizeHandles: ResizeHandle[] = [
@@ -57,11 +57,22 @@ const CanvasElementComponent = memo(({
   onSelect,
   onStartDrag,
   onStartResize,
-  zoom
+  zoom,
+  dragOffset
 }: CanvasElementProps) => {
+  const elRef = useRef<HTMLDivElement>(null);
+
+  // Apply drag offset via DOM directly to avoid re-renders
+  useEffect(() => {
+    if (!elRef.current) return;
+    const ox = dragOffset?.x ?? 0;
+    const oy = dragOffset?.y ?? 0;
+    elRef.current.style.transform = `translate(${element.bounds.x + ox}px, ${element.bounds.y + oy}px) rotate(${element.rotation}deg)`;
+  }, [element.bounds.x, element.bounds.y, element.rotation, dragOffset]);
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    onSelect(element.id, e.shiftKey);
+    onSelect(element.id, e.shiftKey || e.ctrlKey || e.metaKey);
     if (!element.locked) {
       onStartDrag(element.id, e);
     }
@@ -133,7 +144,7 @@ const CanvasElementComponent = memo(({
         const el = element as ButtonElement;
         return (
           <div
-            className="w-full h-full flex items-center justify-center cursor-pointer"
+            className="w-full h-full flex items-center justify-center"
             style={{
               backgroundColor: el.fill?.color || 'transparent',
               border: el.stroke ? `${el.stroke.width}px ${el.stroke.style} ${el.stroke.color}` : 'none',
@@ -295,19 +306,17 @@ const CanvasElementComponent = memo(({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: element.opacity, scale: 1, rotate: element.rotation }}
-      transition={{ duration: 0 }}
-      className="absolute"
+    <div
+      ref={elRef}
+      className="absolute will-change-transform"
       style={{
-        left: element.bounds.x,
-        top: element.bounds.y,
         width: element.bounds.width,
         height: element.bounds.height,
         zIndex: element.zIndex,
         cursor: element.locked ? 'not-allowed' : 'move',
-        display: element.visible ? 'block' : 'none'
+        display: element.visible ? 'block' : 'none',
+        opacity: element.opacity,
+        transform: `translate(${element.bounds.x}px, ${element.bounds.y}px) rotate(${element.rotation}deg)`,
       }}
       onMouseDown={handleMouseDown}
     >
@@ -318,7 +327,7 @@ const CanvasElementComponent = memo(({
         <div 
           className="absolute inset-0 pointer-events-none"
           style={{
-            border: isSelected ? '2px solid #a855f7' : '1px solid #a855f7',
+            border: isSelected ? '2px solid hsl(263 70% 50%)' : '1px solid hsl(263 70% 50%)',
             borderRadius: 2
           }}
         />
@@ -346,7 +355,7 @@ const CanvasElementComponent = memo(({
           {element.name}
         </div>
       )}
-    </motion.div>
+    </div>
   );
 });
 
